@@ -278,3 +278,66 @@ Public Function doDownloadTemplate()
     MsgBox "The current version of the add-ins app is " & vVersion & ".", vbOKOnly, "Information"
 
 End Function
+
+Public Function fn_ConnectString(ByVal FileType As String, ByVal dataSource As String, ByVal passwords As String) As String
+    If IsNull(dataSource) = False Then
+        Dim Types As String
+        Select Case FileType
+            Case "Excel"
+                fn_ConnectString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" & dataSource & _
+                                "Extended Properties =""Excel 12.0 Xml;HDR=YES"";"
+            Case "Access"
+                If IsNull(passwords) = False Then
+                    fn_ConnectString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" & dataSource & ";" & _
+                                    "Jet OLEDB:Database Password=" & passwords & ";"
+                Else: fn_ConnectString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" & dataSource & ";" & _
+                                    "Persist Security Info=False;"
+                End If
+            Case "ExcelMacro"
+                fn_ConnectString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" & dataSource & _
+                                "; Extended Properties=""Excel 12.0 Macro;HDR=YES"";"
+            Case "Sharepoint"
+                fn_ConnectString = "Provider=Microsoft.Office.List.OLEDB.2.0;Data Source=" & dataSource & "; ApplicationName=Excel;Version=12.0.0.0"
+            Case "Sharepoint2"
+                fn_ConnectString = "Provider=Microsoft.ACE.OLEDB.12.0;WSS;IMEX=2;RetrieveIds=Yes;DATABASE=" & dataSource & ";LIST=" & passwords & ";"
+        End Select
+    End If
+End Function
+
+Public Function fn_ADRS(ByVal FileType As String, ByVal dataSource As String, ByVal passwords As String, ByVal sqlState As String) As ADODB.Recordset
+    Dim dbConn As ADODB.Connection
+    Set dbConn = New ADODB.Connection
+
+    'On Error GoTo Handler01:
+    dbConn.Mode = adModeReadWrite
+    dbConn.Open fn_ConnectString(FileType, dataSource, passwords)
+    Set fn_ADRS = New ADODB.Recordset
+    fn_ADRS.Open sqlState, dbConn, adLockOptimistic, adLockOptimistic
+
+    Exit Function
+
+    Handler01:
+    Set fn_ADRS = Nothing
+
+    'Example for SharePoint list: fx_masterRS("SELECT * FROM XIA_T_MATCHED", "{59D43878-3BEB-4D8C-9FF9-8C69636EAB0F}")
+    'fn_ADRS("Sharepoint2", srcFile, GUID, sqlString)
+    ' sqlString = "SELECT * FROM XIA_T_MATCHED" while GUID = "{59D43878-3BEB-4D8C-9FF9-8C69636EAB0F}"
+
+End Function
+
+Public Function fn_ADRS_Connect(ByVal FileType As String, ByVal dataSource As String, ByVal passwords As String) As ADODB.Connection
+    Dim dbConn As ADODB.Connection
+    Set dbConn = New ADODB.Connection
+
+    On Error GoTo Handler01:
+    dbConn.Open fn_ConnectString(FileType, dataSource, passwords)
+    Set fn_ADRS_Connect = New ADODB.Connection
+    Set fn_ADRS_Connect = dbConn
+
+    Exit Function
+
+    Handler01:
+    On Error Resume Next
+    Set fn_ADRS_Connect = Nothing
+
+End Function
