@@ -1,0 +1,49 @@
+Public vProgress As Double
+
+Public Function doShowProgress(ByVal vText As String)
+
+If vProgress = 0 Then
+    vNotification.Controls("vTitle").Caption = vText
+    vNotification.Controls("vInfo").Caption = doEchoProgressBar(vProgress)
+    vNotification.Repaint
+    vNotification.Show
+ElseIf vProgress > 0 And vProgress < 1 Then
+    vNotification.Controls("vTitle").Caption = vText
+    vNotification.Controls("vInfo").Caption = doEchoProgressBar(vProgress)
+    vNotification.Repaint
+    vNotification.Show
+ElseIf vProgress = 1 Then
+    vNotification.Controls("vTitle").Caption = vText
+    vNotification.Controls("vInfo").Caption = doEchoProgressBar(vProgress)
+    vNotification.Repaint
+    vNotification.Show
+    Unload vNotification
+    vNotification.Controls("vTitle").Caption = ""
+    vNotification.Controls("vInfo").Caption = ""
+End If
+
+End Function
+
+Public Function doEchoProgressBar(ByVal vFraction As Double) As String
+
+Dim vTemp As String
+Dim vYes, vNo As Integer
+
+If vFraction <= 1 And vFraction >= 0 Then
+    vYes = CInt(vFraction * 100)
+    vYes = Round(vYes / 10, 0) * 10
+    
+    For i = 10 To 100 Step 10
+        If i < vYes Then
+            vTemp = vTemp & "#"
+        Else: vTemp = vTemp & "-"
+        End If
+    Next i
+Else:
+    MsgBox "The fraction must be in between 0 and 1 with decimals!", vbOKOnly
+    End
+End If
+    
+vTemp = "[" & vTemp & "] - " & vFraction * 100 & "%"
+doEchoProgressBar = vTemp
+End Function

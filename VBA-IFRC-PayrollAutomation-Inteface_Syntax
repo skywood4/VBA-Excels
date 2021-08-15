@@ -1,0 +1,138 @@
+Public Function doInstallXlam() As Variant
+
+Dim vFile As FileSystemObject 'This is for checking local folder location and do the manipulation
+Dim vUser, vSaveLoc, vFName, vSource, vTempLoc, vFNameX As String
+Dim vCheck As Boolean
+
+On Error GoTo Handler01
+
+Application.DisplayAlerts = False
+
+vUser = Environ("username")
+vSaveLoc = Environ("AppData") & "\Microsoft\AddIns\"
+vFName = "Payroll Automation Module"
+vFNameX = vFName & ".xlam"
+
+Set vFile = New FileSystemObject
+
+If vFile.FolderExists(vSaveLoc) = False Then
+    MkDir (vSaveLoc)
+End If
+
+vSource = "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/IFRC/" & vFNameX
+
+vCheck = False
+For Each vaddin In Application.AddIns
+    If vaddin.Name = vFName Then
+        vaddin.Installed = False
+        vCheck = True
+    End If
+Next
+
+If vCheck = True Then
+    Kill saveloc & vFName
+    doDownloadExcelFile vSource, vSaveLoc & vFNameX
+    AddIns(vFName).Installed = True
+    MsgBox "The installation of the add-ins is successful!", vbOKOnly, "Information"
+ElseIf vCheck = False Then
+    doDownloadFileFromWeb vSource, vSaveLoc & vFNameX
+    AddIns.Add Filename:=vSaveLoc & vFNameX, CopyFile:=False
+    AddIns(vFName).Installed = True
+    MsgBox "The installation of the add-ins is successful!", vbOKOnly, "Information"
+End If
+
+Application.DisplayAlerts = True
+
+Exit Function
+
+Handler01:
+Application.DisplayAlerts = True
+MsgBox "Error in installing or updating excel add-ins.", vbOKOnly, "Error"
+End
+End Function
+
+
+Public Function doFirstTime()
+
+Dim vLen As Long
+
+On Error Resume Next
+vLen = Len("installer")
+If LCase(Left(ThisWorkbook.Name, vLen)) = "installer" And Right(ThisWorkbook.Name, 4) = "xlsm" Then
+    doInstallXlamAlt
+End If
+
+End Function
+
+
+Public Function doInstallXlamAlt() As Variant
+
+Dim vFile As FileSystemObject 'This is for checking local folder location and do the manipulation
+Dim vUser, vSaveLoc, vFName, vSource, vTempLoc, vFNameX As String
+Dim vCheck As Boolean
+Dim vLen As Integer
+Dim vWB1 As Workbook, vWB2 As Workbook
+
+On Error GoTo Handler01
+
+Application.DisplayAlerts = False
+
+
+
+vUser = Environ("username")
+vSaveLoc = Environ("AppData") & "\Microsoft\AddIns\"
+vFName = "installer-Payroll Automation Module"
+vFNameX = vFName & ".xlsm"
+vLen = Len("Installer")
+
+vSource = "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/IFRC/" & vFNameX
+
+If LCase(Left(ActiveWorkbook.Name, vLen)) = "installer" Then
+    Set vWB1 = ActiveWorkbook
+    GoTo theRest
+Else:
+    Set vWB1 = Workbooks.Open(vSource)
+    Exit Function
+End If
+    
+theRest:
+vFName = "Payroll Automation Module"
+vFNameX = vFName & ".xlam"
+Set vFile = New FileSystemObject
+
+If vFile.FolderExists(vSaveLoc) = False Then
+    MkDir (vSaveLoc)
+End If
+
+vCheck = False
+For Each vaddin In Application.AddIns
+    If vaddin.Name = vFName Then
+        vaddin.Installed = False
+        vCheck = True
+    End If
+Next
+
+If vCheck = True Then
+    Kill saveloc & vFNameX
+    vWB1.SaveAs vSaveLoc & vFName, xlOpenXMLAddIn
+    AddIns(vFName).Installed = True
+    vWB1.Close
+    'MsgBox "The installation of the add-ins is successful!", vbOKOnly, "Information"
+ElseIf vCheck = False Then
+    vWB1.SaveAs vSaveLoc & vFName, xlOpenXMLAddIn
+    AddIns.Add Filename:=vSaveLoc & vFNameX, CopyFile:=False
+    AddIns(vFName).Installed = True
+    vWB1.Close
+    'MsgBox "The installation of the add-ins is successful!", vbOKOnly, "Information"
+End If
+
+Application.DisplayAlerts = True
+
+Exit Function
+
+Handler01:
+Application.DisplayAlerts = True
+MsgBox "Error in installing or updating excel add-ins.", vbOKOnly, "Error"
+End
+End Function
+

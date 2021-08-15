@@ -8,23 +8,25 @@ Public Function doTrial1()
 
 End Function
 
-'This function is to find the rightmost filled cells
+
 Public Function doFindLastCol(ByVal vWS1 As Worksheet, ByVal vStart As String) As Long
 
     Dim vTemp As Long, vCol As Long
 
     vTemp = vWS1.Range(vStart).End(xlToRight).Column
     a = vWS1.Range(vStart).Column
+    vCol = 1
 
     Do While vTemp < 16384
         vCol = vTemp
         vTemp = vWS1.Range(vStart).Offset(0, vCol - a).End(xlToRight).Column
-        a = vCol
+        
     Loop
 
-    doFindLastCol = a
+    doFindLastCol = vCol
 
 End Function
+
 
 Public Function doFindLastRow(ByVal vWS1 As Worksheet, ByVal vStart As String) As Long
 
@@ -160,10 +162,22 @@ Public Function doCopyFiles(ByVal vFileLoc As String, ByVal vDestination As Stri
 End Function
 
 
-'Function below is not usefull
+
+Public Function getTemplateAndSaveAs() As String
+
+    Dim vDefault As String, vDestination As String
+
+    vDefault = "C:\Users\" & Environ("username") & "\Documents\"
+
+    With Application.FileDialog(msoFileDialogSaveAs)
+
+
+End Function
+
+
 Function doDownloadFileFromWeb(ByVal strURL As String, ByVal strSavePath As String)
 
-    'strSavePath includes filename
+    ' strSavePath includes filename
     On Error GoTo Handler01
 
     Dim vFile As FileSystemObject
@@ -180,7 +194,7 @@ Function doDownloadFileFromWeb(ByVal strURL As String, ByVal strSavePath As Stri
     Handler01:
     MsgBox "Failed to access the server to obtain needed file!", vbOKOnly, "Error"
     End
-    
+        
 End Function
 
 
@@ -271,9 +285,9 @@ Public Function doDownloadTemplate()
     Application.DisplayAlerts = True
 
     vTemplateFileName = vRename
-    End Function
+End Function
 
-    Function doShowVersion()
+Function doShowVersion()
 
     MsgBox "The current version of the add-ins app is " & vVersion & ".", vbOKOnly, "Information"
 

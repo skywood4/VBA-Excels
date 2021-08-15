@@ -1,0 +1,551 @@
+Public vWS_PAYROLL As Worksheet
+Public vRG_PAYROLL As Range
+Public vWS_COA As Worksheet
+Public vRG_COA As Range
+Public vAR_COA As Variant
+Public vRG_JOURNAL As Range
+Public vAR_JOURNAL As Variant
+Public vCOA_ColRef() As Long
+Public vPAYROLL_ColRef() As Long
+Public vDataset() As Variant
+Public vWS_J As Worksheet, vWS_TJ As Worksheet
+Public vTemplateFileName As String
+Public Const vVersion As String = "1.1.0"
+
+
+
+Public Function doTrial2()
+
+Dim vFile As FileSystemObject
+Dim vTrial As String
+Dim vTrial2 As Variant
+Dim vRange As Range
+
+Set vFile = New FileSystemObject
+'Set vRange = ActiveSheet.Range("JournalSummary")
+'doSetCOAarr
+'doSetCoaRNG
+'doSetPayrollRNG
+'vTrial = doSetPayrollFields("gls")
+'vTrial = "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/British Council/Journal Template.xlsx"
+'vFile.CopyFile "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/British Council/Journal Template.xlsx", _
+'    "C:\Users\RubenTedjasukmana\Documents\Journal Template.xlsx"
+'doDownloadFileFromWeb vTrial, "C:\Users\RubenTedjasukmana\Documents\Journal Template.xlsx"
+'doCopyFiles vTrial, "C:\Users\RubenTedjasukmana\Documents\FileTransferText.xlsx"
+'"https://rtedja.sharepoint.com/sites/MySharedLibrary/Shared Documents/FileTransferText.xlsx"
+'"https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/British Council/FileTransferTest.xlsx
+'Set vRange = vRG_PAYROLL
+'doShowProgress "Testing", 0.267
+'vAttempt = MsgBox(doCopyFiles(vTrial, "C:\Users\RubenTedjasukmana\Documents\FileTransferTest.xlsx"))
+'doCreateJournalSummary
+'doProposeJournal
+MsgBox (ThisWorkbook.Name)
+
+'Set vTrial2 = Workbooks.Open("https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/IFRC/Journal Template.xlsx")
+
+'MsgBox (doCreateJournalTemplate)
+MsgBox (ActiveWorkbook.Name)
+'MsgBox (vRange(1, 1).Value)
+'doShowProgress "Testing", 0.5
+'MsgBox (Environ("AppData"))
+'vProgress = 0
+'For i = 0 To 100 Step 10
+'    vProgress = Round(CDbl(i) / 100, 2)
+'    doShowProgress ("Trying")
+'    Application.Wait (Now() + TimeValue("00:00:01"))
+'Next i
+
+End Function
+
+Public Function doFindPayroll() As Variant
+
+Dim vSeekFields As Variant, vResults As Variant
+Dim vWS1 As Worksheet
+Dim vTemp() As Variant, vTempErr() As Variant
+Dim vLowest As Long
+
+vSeekFields = doSetPayrollFields("fields")
+vLowest = UBound(vSeekFields, 1)
+ReDim vTemp(1, 0): ReDim vTempErr(1, 0)
+vTemp(0, 0) = ""
+
+With ActiveWorkbook
+    For i = 1 To .Sheets.Count
+        Set vWS1 = .Sheets(i)
+        vResults = doCheckSheetByFields(vWS1, vSeekFields, "payroll")
+        
+        If UBound(vResults) = 0 Then
+            vTemp(0, 0) = .Sheets(i).Name
+            vTemp(1, 0) = "Empty"
+        Else:
+            If UBound(vResults, 1) < vLowest Then
+                vLowest = UBound(vResults)
+                ReDim Preserve vTempErr(1, vLowest - 1)
+                vTempErr(0, 0) = .Sheets(i).Name
+                
+                For j = 0 To vLowest - 1
+                    vTempErr(1, j) = vResults(j + 1)
+                Next j
+            End If
+        End If
+    Next i
+End With
+
+If vTemp(0, 0) = "" Then
+    doFindPayroll = vTempErr
+Else
+    doFindPayroll = vTemp
+End If
+
+End Function
+
+
+Public Function doFindCOA() As Variant
+
+Dim vSeekFields As Variant, vResults As Variant
+Dim vWS1 As Worksheet
+Dim vTemp() As Variant, vTempErr() As Variant
+Dim vLowest As Long
+
+vSeekFields = doSetCOAFields("fields")
+vLowest = UBound(vSeekFields, 1)
+ReDim vTemp(1, 0): ReDim vTempErr(1, 0)
+vTemp(0, 0) = ""
+
+With ActiveWorkbook
+    For i = 1 To .Sheets.Count
+        Set vWS1 = .Sheets(i)
+        vResults = doCheckSheetByFields(vWS1, vSeekFields, "coa")
+        
+        If UBound(vResults) = 0 Then
+            vTemp(0, 0) = .Sheets(i).Name
+            vTemp(1, 0) = "Empty"
+        Else:
+            If UBound(vResults, 1) < vLowest Then
+                vLowest = UBound(vResults)
+                ReDim Preserve vTempErr(1, vLowest - 1)
+                vTempErr(0, 0) = .Sheets(i).Name
+                
+                For j = 0 To vLowest - 1
+                    vTempErr(1, j) = vResults(j + 1)
+                Next j
+            End If
+        End If
+    Next i
+End With
+
+If vTemp(0, 0) = "" Then
+    doFindCOA = vTempErr
+Else
+    doFindCOA = vTemp
+End If
+
+End Function
+
+
+Public Function doSetPayrollRNG() As Boolean
+
+Dim vFindSheet As Variant, vFields As Variant
+Dim vFindCellRow As Variant
+Dim vLocation() As Long
+Dim vFindCellHeader As String
+Dim vEdge As Long, vEdgeRow As Long
+Dim vErrMsg1, vErrMsg2 As String
+
+On Error GoTo Handler01
+
+vProgress = vProgress + (0.14 - 0.12)
+doShowProgress "Identifying payroll area."
+
+vFindSheet = doFindPayroll
+vFindCellHeader = "EMP ID"
+
+Select Case vFindSheet(1, 0)
+    Case "Empty"
+        Set vWS_PAYROLL = ActiveWorkbook.Sheets(vFindSheet(0, 0))
+        vEdge = doFindLastCol(vWS_PAYROLL, "A1")
+        vFindCellRow = doFindCell(vFindCellHeader, vWS_PAYROLL.Range("A1:" & vWS_PAYROLL.Cells(1, vEdge).Address))
+        
+        vEdgeRow = doFindLastRow(vWS_PAYROLL, vFindCellRow(1))
+        Set vRG_PAYROLL = vWS_PAYROLL.Range("A1:" & vWS_PAYROLL.Cells(vEdgeRow, vEdge).Address)
+          
+        
+        If vRG_PAYROLL.Rows.Count > 1 Then
+            doSetPayrollRNG = True
+            
+            vFields = doSetPayrollFields("gls")
+            ReDim vLocation(UBound(vFields, 2))
+            
+            For j = 0 To UBound(vFields, 2)
+                vLocation(j) = doFindHeaderInRng(vFields(0, j), vRG_PAYROLL)
+            Next j
+            
+            ReDim vPAYROLL_ColRef(UBound(vLocation))
+            vPAYROLL_ColRef = vLocation
+            
+        Else:
+            doSetPayrollRNG = False
+            MsgBox "Error! Payroll table has no data!", vbOKOnly, "Error"
+            End
+        End If
+    Case Else
+        doSetPayrollRNG = False
+        
+        vErrMsg1 = "The table that could be referred as payroll table is not found. The closest match with payroll table is on sheet """ & vFindSheet(0, 0) & _
+                   """ but the following field(s) is(are) not available on such sheet." & vbCrLf
+        
+        For i = 0 To UBound(vFindSheet, 2)
+            vErrMsg2 = vErrMsg2 & i + 1 & ". " & vFindSheet(1, i) & vbCrLf
+        Next i
+        
+        vErrMsg1 = vErrMsg1 & vErrMsg2
+        
+        MsgBox vErrMsg1, vbOKOnly, "Error"
+        End
+End Select
+
+vProgress = vProgress + 0.12
+doShowProgress "Identifying payroll area."
+
+Exit Function
+Handler01:
+doSetPayrollRNG = False
+Unload vNotification
+MsgBox "Error! The system is unable to locate sheet that contains payroll table.", vbOKOnly, "Error"
+
+End Function
+
+Public Function doSetCoaRNG() As Boolean
+
+Dim vFindSheet As Variant, vFields As Variant
+Dim vFindCellRow As Variant
+Dim vLocation() As Long
+Dim vFindCellHeader As String
+Dim vEdge As Long, vEdgeRow As Long
+Dim vErrMsg1, vErrMsg2 As String
+
+On Error GoTo Handler01
+
+vFindSheet = doFindCOA
+vFindCellHeader = "#"
+
+Select Case vFindSheet(1, 0)
+    Case "Empty"
+        Set vWS_COA = ActiveWorkbook.Sheets(vFindSheet(0, 0))
+        vEdge = doFindLastCol(vWS_COA, "A1")
+        vFindCellRow = doFindCell(vFindCellHeader, vWS_COA.Range("A1:" & vWS_COA.Cells(1, vEdge).Address))
+        
+        vEdgeRow = doFindLastRow(vWS_COA, vFindCellRow(1))
+        Set vRG_COA = vWS_COA.Range("A1:" & vWS_COA.Cells(vEdgeRow, vEdge).Address)
+        
+        If vRG_COA.Rows.Count > 1 Then
+            doSetCoaRNG = True
+            
+            vFields = doSetCOAFields("gls")
+            ReDim vLocation(UBound(vFields))
+            
+            For j = 0 To UBound(vFields)
+                vLocation(j) = doFindHeaderInRng(vFields(j), vRG_COA)
+            Next j
+            
+            ReDim vCOA_ColRef(UBound(vLocation))
+            vCOA_ColRef = vLocation
+            
+        Else:
+            doSetCoaRNG = False
+            MsgBox "Error! Budget assignment table has no data!", vbOKOnly, "Error"
+            End
+        End If
+        
+    Case Else
+        doSetCoaRNG = False
+        
+        vErrMsg1 = "The table that could be referred as budget assignment table is not found. The closest match with the budget assignment is on sheet """ & vFindSheet(0, 0) & _
+                   """ but the following field(s) is(are) not available on such sheet." & vbCrLf
+        
+        For i = 0 To UBound(vFindSheet, 2)
+            vErrMsg2 = vErrMsg2 & i + 1 & ". " & vFindSheet(1, i) & vbCrLf
+        Next i
+        
+        vErrMsg1 = vErrMsg1 & vErrMsg2
+        
+        MsgBox vErrMsg1, vbOKOnly, "Error"
+        End
+End Select
+
+Exit Function
+Handler01:
+doSetCoaRNG = False
+MsgBox "Error! The system is unable to locate sheet that contains budget assignment table.", vbOKOnly, "Error"
+
+End Function
+
+
+Public Function doSetPayrollFields(ByVal vIterate As String) As Variant
+
+Dim vArray() As Variant: Dim vEmpty As String
+
+Select Case vIterate
+    Case "fields"
+        'ReDim vGLs(28) As Variant
+        vArray = Array("No", "EMP", "EMP ID", "LOCATION", "GROUP", "SALARY", "SALARY ADJ.", "OVERTIME", "ALLOWANCE", "TB Until end of Month", "Compensation Pay", "PREMI INSURANCE", "POSITION  ALLW", "THR BONUS", "TERMINATION BENEFIT", "GROSS", "BPJSTK EMP", "BPJSTK PENSION EMP", "BPJSKES EMP", "P/A DEDUCTION", "TAX OF TERMINATION BENEFIT", "INCOME TAX", "TOTAL DEDUCTION", "TAKE HOME PAY", "BPJSTK CO", "BPJSTK PENSION CO", "BPJSKES CO", "E-CODE", "GROSS INC")
+    Case "gls"
+        ReDim vArray(7, 16) As Variant
+        vArray(0, 0) = "SALARY": vArray(0, 1) = "SALARY ADJ.": vArray(0, 2) = "OVERTIME": vArray(0, 3) = "ALLOWANCE": vArray(0, 4) = "TB Until end of Month": vArray(0, 5) = "Compensation Pay": vArray(0, 6) = "POSITION  ALLW": vArray(0, 7) = "THR BONUS": vArray(0, 8) = "TERMINATION BENEFIT": vArray(0, 9) = "BPJSTK EMP": vArray(0, 10) = "BPJSTK PENSION EMP": vArray(0, 11) = "BPJSKES EMP": vArray(0, 12) = "TAX OF TERMINATION BENEFIT": vArray(0, 13) = "INCOME TAX": vArray(0, 14) = "BPJSTK CO": vArray(0, 15) = "BPJSTK PENSION CO": vArray(0, 16) = "BPJSKES CO"
+        vArray(1, 0) = "6601":   vArray(1, 1) = "6601":        vArray(1, 2) = "6601":     vArray(1, 3) = "6601":      vArray(1, 4) = "6601":                  vArray(1, 5) = "6601":             vArray(1, 6) = "6601":           vArray(1, 7) = "6601":      vArray(1, 8) = "6601":                vArray(1, 9) = "2524":       vArray(1, 10) = "2524":               vArray(1, 11) = "2524":        vArray(1, 12) = "2521":                        vArray(1, 13) = "2521":       vArray(1, 14) = "6611":      vArray(1, 15) = "6611":              vArray(1, 16) = "6612"
+        vArray(2, 0) = "E":      vArray(2, 1) = "E":           vArray(2, 2) = "E":        vArray(2, 3) = "E":         vArray(2, 4) = "E":                     vArray(2, 5) = "E":                vArray(2, 6) = "E":              vArray(2, 7) = "E":         vArray(2, 8) = "E":                   vArray(2, 9) = "X":          vArray(2, 10) = "X":                  vArray(2, 11) = "X":           vArray(2, 12) = "L":                           vArray(2, 13) = "L":          vArray(2, 14) = "E":         vArray(2, 15) = "E":                 vArray(2, 16) = "E" 'X will be not read as it will be incorporated in BPJS calculation
+        vArray(3, 0) = -1:       vArray(3, 1) = -1:            vArray(3, 2) = -1:         vArray(3, 3) = -1:          vArray(3, 4) = -1:                      vArray(3, 5) = -1:                 vArray(3, 6) = -1:               vArray(3, 7) = -1:          vArray(3, 8) = -1:                    vArray(3, 9) = 1:            vArray(3, 10) = 1:                    vArray(3, 11) = 1:             vArray(3, 12) = 1:                             vArray(3, 13) = 1:            vArray(3, 14) = 0:           vArray(3, 15) = 0:                   vArray(3, 16) = 0 '3. Impact to cash
+        vArray(4, 0) = 0:        vArray(4, 1) = 0:             vArray(4, 2) = 0:          vArray(4, 3) = 0:           vArray(4, 4) = 0:                       vArray(4, 5) = 0:                  vArray(4, 6) = 0:                vArray(4, 7) = 0:           vArray(4, 8) = 0:                     vArray(4, 9) = -1:           vArray(4, 10) = -1:                   vArray(4, 11) = 0:             vArray(4, 12) = 0:                             vArray(4, 13) = 0:            vArray(4, 14) = -1:          vArray(4, 15) = -1:                  vArray(4, 16) = 0 '4. Impact to BPJS Naker (all BPJS except health)
+        vArray(5, 0) = 0:        vArray(5, 1) = 0:             vArray(5, 2) = 0:          vArray(5, 3) = 0:           vArray(5, 4) = 0:                       vArray(5, 5) = 0:                  vArray(5, 6) = 0:                vArray(5, 7) = 0:           vArray(5, 8) = 0:                     vArray(5, 9) = 0:            vArray(5, 10) = 0:                    vArray(5, 11) = -1:            vArray(5, 12) = 0:                             vArray(5, 13) = 0:            vArray(5, 14) = 0:           vArray(5, 15) = 0:                   vArray(5, 16) = -1 '5. Impact to BPJS Health only
+        vArray(6, 0) = 1.1:      vArray(6, 1) = 1.2:           vArray(6, 2) = 1.3:        vArray(6, 3) = 2:           vArray(6, 4) = 6:                       vArray(6, 5) = 6:                  vArray(6, 6) = 1:                vArray(6, 7) = 1:           vArray(6, 8) = 6:                     vArray(6, 9) = 0:            vArray(6, 10) = 0:                    vArray(6, 11) = 0:             vArray(6, 12) = 5:                             vArray(6, 13) = 5:            vArray(6, 14) = 3.1:         vArray(6, 15) = 3.1:                 vArray(6, 16) = 4.1 '6. Code ID for ref1
+        vArray(7, 0) = 0:        vArray(7, 1) = 0:             vArray(7, 2) = 0:          vArray(7, 3) = 0:           vArray(7, 4) = 0:                       vArray(7, 5) = 0:                  vArray(7, 6) = 0:                vArray(7, 7) = 0:           vArray(7, 8) = 0:                     vArray(7, 9) = 0:            vArray(7, 10) = 0:                    vArray(7, 11) = 0:             vArray(7, 12) = -1:                            vArray(7, 13) = -1:           vArray(7, 14) = 0:           vArray(7, 15) = 0:                   vArray(7, 16) = 0 '7. Impact to income tax payable
+    Case Else
+        doSetPayrollFields = ""
+        Exit Function
+End Select
+
+doSetPayrollFields = vArray
+
+End Function
+
+
+Public Function doSetCOAFields(ByVal vIterate As String) As Variant
+
+Dim vArray() As Variant: Dim vEmpty As String
+
+Select Case vIterate
+    Case "fields"
+        vArray = Array("#", "Last Name", "First Name", "Position", "Project / CC", "Activity", "MCode", "CA from", "CA to", "%")
+    Case "gls"
+        vArray = Array("#", "Project / CC", "Activity", "MCode", "%")
+    Case Else
+        doSetCOAFields = ""
+        Exit Function
+End Select
+
+doSetCOAFields = vArray
+
+End Function
+
+
+Public Function doSetJournalFields(ByVal vIterate As String) As Variant
+
+Dim vArray As Variant: Dim vEmpty As String
+
+Select Case vIterate
+    Case "journal"
+        vArray = Array("line", "el1", "el2", "el3", "el4", "cur", "debit", "credit", "CHF", "line description", "ref1", "ref2", "ref3", "ref4", "ref5", "ref6")
+    Case Else
+        vArray = Array("Empty")
+End Select
+
+doSetJournalFields = vArray
+End Function
+
+
+Public Function doSetTemplateFields(ByVal vIterate As String) As Variant
+
+Dim vArray As Variant: Dim vEmpty As String
+
+Select Case vIterate
+    Case "template"
+        vArray = Array("date", "year", "period", "document description", "cc", "doc", "docnum", "line", "el1", "el2", "el3", "el4", "cur", "debit", "credit", "CHF", "line description", "ref1", "ref2", "ref3", "ref4", "ref5", "ref6")
+    Case Else
+        vArray = Array("Empty")
+End Select
+
+doSetTemplateFields = vArray
+End Function
+
+
+Public Function doCheckSheetByFields(ByVal vWS1 As Worksheet, ByVal vFields As Variant, ByVal vContext As String) As Variant
+
+Dim vMissing() As Variant
+Dim vCheck As Boolean
+Dim vCount As Long
+Dim vLeftEdge As Long
+
+
+ReDim vMissing(0) As Variant
+vMissing(0) = "Empty"
+
+On Error GoTo Handler01:
+vLeftEdge = doFindLastCol(vWS1, "A1")
+
+With vWS1
+    Select Case vContext
+        Case "payroll", "coa"
+            vCount = 0
+            For i = 0 To UBound(vFields)
+                vCheck = False
+                For j = 1 To vLeftEdge
+                    If vFields(i) = .Cells(1, j).Value Then
+                        vCheck = True
+                    End If
+                Next j
+                
+                If vCheck = False Then
+                    vCount = vCount + 1
+                    ReDim Preserve vMissing(vCount)
+                    vMissing(vCount) = vFields(i)
+                End If
+            Next i
+        Case Else:
+            doCheckSheetByFields = ""
+            Exit Function
+    End Select
+End With
+
+doCheckSheetByFields = vMissing
+Exit Function
+
+Handler01:
+doCheckSheetByFields = ""
+
+End Function
+
+Public Function doCreateJournalSummary()
+
+Dim vCheck As Boolean, vFound As Boolean
+Dim vJFields As Variant
+Dim vSheet As String
+Dim vWS1 As Worksheet
+
+vProgress = 0
+doShowProgress "Building journal summary table."
+
+On Error GoTo Handler01
+
+vCheck = False
+vJFields = doSetJournalFields("journal")
+With ActiveWorkbook
+    j = 1
+    vSheet = "Summary"
+    Do
+        
+        vFound = False
+        For i = 1 To .Sheets.Count
+            If .Sheets(i).Name = vSheet Then
+                vFound = True
+            End If
+        Next i
+        
+        If vFound = False Then
+            vCheck = True
+            .Worksheets.Add
+            Set vWS1 = ActiveSheet
+            
+            vWS1.Name = vSheet
+            
+            For k = 0 To UBound(vJFields)
+                vWS1.Cells(1, k + 1).Value = vJFields(k)
+            Next k
+            
+            Set vWS_J = vWS1
+        Else
+            vSheet = "Summary" & j
+            j = j + 1
+        End If
+        
+    Loop While vCheck = False
+End With
+
+vProgress = vProgress + 0.14
+doShowProgress "Building journal summary table."
+
+Exit Function
+
+Handler01:
+Unload vNotification
+MsgBox "Error in building journal summary table.", vbOKOnly, "Error"
+
+End Function
+
+
+Public Function doCheckCOA()
+
+Dim vTemp, vTempErr() As Variant
+Dim vECode As String, vErrMsg1, vErrMsg2 As String
+Dim vColRef As Variant
+Dim vColNo As Long
+Dim vCount As Integer
+
+ReDim vTempErr(0)
+vTempErr(0) = "Empty"
+
+On Error GoTo Handler01:
+
+vProgress = vProgress + (0.14 - 0.12)
+doShowProgress "Identifying payroll area."
+
+doSetCOAarr
+
+vProgress = vProgress + (0.12 - 0.06)
+doShowProgress "Identifying payroll area."
+
+vColRef = vPAYROLL_ColRef
+vCount = 0
+
+For i = 2 To vRG_PAYROLL.Rows.Count
+    
+    vProgress = vProgress + Round(0.06 / vRG_PAYROLL.Rows.Count, 2)
+    doShowProgress "Identifying payroll area."
+    
+    vWhatToFind = "E-CODE"
+    vColNo = doFindHeaderInRng(vWhatToFind, vRG_PAYROLL)
+    vECode = vRG_PAYROLL.Cells(i, vColNo)
+    
+    If doCountIF2DArr(vECode, vAR_COA) = 0 Then
+        ReDim Preserve vTempErr(vCount)
+        vTempErr(vCount) = vECode
+        vCount = vCount + 1
+    End If
+Next i
+
+If vTempErr(0) <> "Empty" Then
+        vErrMsg1 = "The following employee code has no budget assignment. Please set budget assignment on the budget assignment table." & vbCrLf
+        
+        For i = 0 To UBound(vTempErr)
+            vErrMsg2 = vErrMsg2 & i + 1 & ". " & vTempErr(i) & vbCrLf
+        Next i
+        
+        vErrMsg1 = vErrMsg1 & vErrMsg2
+        
+        MsgBox vErrMsg1, vbOKOnly, "Error"
+        End
+End If
+
+
+Exit Function
+
+Handler01:
+Unload vNotification
+MsgBox "Error in checking cost assignment table.", vbOKOnly, "Error"
+
+End Function
+
+
+Public Function doSetCOAarr()
+
+
+Dim vTemp() As Variant
+Dim vStatus As Boolean
+Dim vFields() As Variant
+Dim vCol As Variant
+
+vStatus = doSetCoaRNG
+vFields = doSetCOAFields("gls")
+vCol = vCOA_ColRef
+ReDim vTemp(vRG_COA.Rows.Count, UBound(vFields))
+
+For i = 2 To vRG_COA.Rows.Count
+    
+    For j = 0 To UBound(vFields)
+        vTemp(i - 2, j) = CStr(vRG_COA.Cells(i, vCol(j)).Value)
+    Next j
+Next i
+
+vAR_COA = vTemp
+
+
+End Function

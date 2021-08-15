@@ -1,0 +1,327 @@
+Public Function doProposeJournal()
+
+Application.ScreenUpdating = False
+
+Dim vLine As Long
+Dim vPayrollRNGisSet As Boolean
+Dim vPayrollColRef As Variant, vPFields As Variant, vJFields As Variant
+Dim vColNo As Long, vWhat As String
+Dim vCash, vTax As Double, vBNaker, vBKes As Double
+Dim vCashGL As String, vEmp, vPeriod, vLoc As String
+
+doCreateJournalSummary
+vPayrollRNGisSet = doSetPayrollRNG 'Prepare payroll range for us to read data
+doCheckCOA 'Prepare COA table in array format and check whether all employees has the budget allocation
+vJFields = doSetJournalFields("journal")
+vPFields = doSetPayrollFields("gls")
+vCashGL = "2524"
+vPeriod = CStr(Format(Now(), "MMYY"))
+'vPAYROLL_ColRef
+'vWS_J
+
+vProgress = vProgress + 0.16 - 0.12
+doShowProgress "Creating journal entries."
+
+On Error GoTo Handler01:
+    
+If vPayrollRNGisSet = True Then
+
+    vPFields = doSetPayrollFields("gls")
+    vLine = 2
+    For i = 2 To vRG_PAYROLL.Rows.Count '#doProposeJournal-TransactionEntries
+        
+        vProgress = vProgress + Round(0.12 / vRG_PAYROLL.Rows.Count, 2)
+        doShowProgress "Creating journal entries."
+
+        vWhat = "E-CODE"
+        vColNo = doFindHeaderInRng(vWhat, vRG_PAYROLL)
+        vEmp = vRG_PAYROLL.Cells(i, vColNo)
+        
+        vWhat = "LOCATION"
+        vColNo = doFindHeaderInRng(vWhat, vRG_PAYROLL)
+        vLoc = vRG_PAYROLL.Cells(i, vColNo)
+        
+        vCash = 0
+        vBNaker = 0
+        vBKes = 0
+        vTax = 0
+        
+        For j = 0 To UBound(vPAYROLL_ColRef)
+                
+            Select Case vPFields(2, j)
+                Case "E"
+                    For l = 0 To UBound(vAR_COA, 1)
+                        
+                        If vAR_COA(l, 0) = vEmp And vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value <> 0 Then
+                        
+                            vWS_J.Cells(vLine, 1).Value = i - 1
+                            vWS_J.Cells(vLine, 2).Value = vPFields(1, j)
+                            vWS_J.Cells(vLine, 3).Value = vAR_COA(l, 1)
+                            vWS_J.Cells(vLine, 4).Value = vAR_COA(l, 2)
+                            vWS_J.Cells(vLine, 5).Value = vAR_COA(l, 3)
+                            vWS_J.Cells(vLine, 7).Value = vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value * vAR_COA(l, 4)
+                            vWS_J.Cells(vLine, 10).Value = vPFields(0, j) & "/" & vPeriod
+                            vWS_J.Cells(vLine, 11).Value = vPFields(6, j)
+                            vWS_J.Cells(vLine, 12).Value = vLoc
+                            vWS_J.Cells(vLine, 16).Value = vEmp
+                            vLine = vLine + 1
+                        
+                        End If
+                        
+                    Next l
+                'Case "L" This will be used if income tax payable and termination benefit tax payable are separated
+                    
+                    'vWS_J.Cells(vLine, 1).Value = i
+                    'vWS_J.Cells(vLine, 2).Value = vPFields(1, j)
+                    'vWS_J.Cells(vLine, 3).Value = vEmp
+                    'vWS_J.Cells(vLine, 4).Value = "XIDR"
+                    'vWS_J.Cells(vLine, 5).Value = ""
+                    'vWS_J.Cells(vLine, 8).Value = Abs(vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value)
+                    'vWS_J.Cells(vLine, 10).Value = vPFields(0, j) & "/" & vPeriod
+                    'vWS_J.Cells(vLine, 11).Value = vPFields(6, j)
+                    'vWS_J.Cells(vLine, 12).Value = vLoc
+                    'vWS_J.Cells(vLine, 16).Value = vEmp
+                    'vLine = vLine + 1
+            
+            End Select
+            
+            vBNaker = vBNaker + vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value * vPFields(4, j)
+            vBKes = vBKes + vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value * vPFields(5, j)
+            vCash = vCash + vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value * vPFields(3, j)
+            vTax = vTax + vRG_PAYROLL.Cells(i, vPAYROLL_ColRef(j)).Value * vPFields(7, j)
+        Next j
+        
+        If vBNaker <> 0 Then
+            vWS_J.Cells(vLine, 1).Value = i - 1
+            vWS_J.Cells(vLine, 2).Value = 2522
+            vWS_J.Cells(vLine, 3).Value = vEmp
+            vWS_J.Cells(vLine, 4).Value = "XIDR"
+            vWS_J.Cells(vLine, 5).Value = ""
+            
+            If vBNaker > 0 Then
+                vWS_J.Cells(vLine, 7).Value = Abs(vBNaker)
+            Else: vWS_J.Cells(vLine, 8).Value = Abs(vBNaker)
+            End If
+            
+            vWS_J.Cells(vLine, 10).Value = "Social Security/" & vPeriod
+            vWS_J.Cells(vLine, 11).Value = 3.2
+            vWS_J.Cells(vLine, 12).Value = vLoc
+            vWS_J.Cells(vLine, 16).Value = vEmp
+            vLine = vLine + 1
+        End If
+        
+        If vBKes <> 0 Then
+            vWS_J.Cells(vLine, 1).Value = i - 1
+            vWS_J.Cells(vLine, 2).Value = 2523
+            vWS_J.Cells(vLine, 3).Value = vEmp
+            vWS_J.Cells(vLine, 4).Value = "XIDR"
+            vWS_J.Cells(vLine, 5).Value = ""
+            If vBKes > 0 Then
+                vWS_J.Cells(vLine, 7).Value = Abs(vBKes)
+            Else: vWS_J.Cells(vLine, 8).Value = Abs(vBKes)
+            End If
+            
+            vWS_J.Cells(vLine, 10).Value = "NatHealthInsurance/" & vPeriod
+            vWS_J.Cells(vLine, 11).Value = 4.2
+            vWS_J.Cells(vLine, 12).Value = vLoc
+            vWS_J.Cells(vLine, 16).Value = vEmp
+            vLine = vLine + 1
+        End If
+        
+        If vTax <> 0 Then
+            vWS_J.Cells(vLine, 1).Value = i - 1
+            vWS_J.Cells(vLine, 2).Value = 2521
+            vWS_J.Cells(vLine, 3).Value = vEmp
+            vWS_J.Cells(vLine, 4).Value = "XIDR"
+            vWS_J.Cells(vLine, 5).Value = ""
+            If vTax > 0 Then
+                vWS_J.Cells(vLine, 7).Value = Abs(vTax)
+            Else: vWS_J.Cells(vLine, 8).Value = Abs(vTax)
+            End If
+            vWS_J.Cells(vLine, 10).Value = "Income Tax/" & vPeriod
+            vWS_J.Cells(vLine, 11).Value = 5
+            vWS_J.Cells(vLine, 12).Value = vLoc
+            vWS_J.Cells(vLine, 16).Value = vEmp
+            vLine = vLine + 1
+        End If
+        
+        If vCash <> 0 Then
+            vWS_J.Cells(vLine, 1).Value = i - 1
+            vWS_J.Cells(vLine, 2).Value = 2524
+            vWS_J.Cells(vLine, 3).Value = vEmp
+            vWS_J.Cells(vLine, 4).Value = "XIDR"
+            vWS_J.Cells(vLine, 5).Value = ""
+            If vCash > 0 Then
+                vWS_J.Cells(vLine, 7).Value = Abs(vCash)
+            Else: vWS_J.Cells(vLine, 8).Value = Abs(vCash)
+            End If
+            vWS_J.Cells(vLine, 10).Value = "THPAYSALARY/" & vPeriod
+            vWS_J.Cells(vLine, 11).Value = 8
+            vWS_J.Cells(vLine, 12).Value = vLoc
+            vWS_J.Cells(vLine, 16).Value = vEmp
+            vLine = vLine + 1
+        End If
+    Next i
+End If
+
+doMakeJournal
+
+Exit Function
+
+Handler01:
+Application.ScreenUpdating = True
+Unload vNotification
+MsgBox "Error in creating journal.", vbOKOnly, "Error"
+End
+
+Application.ScreenUpdating = True
+
+End Function
+
+
+Public Function doMakeJournal()
+
+doGetJournalArr
+
+doDownloadTemplate
+vProgress = vProgress + 0.14
+doShowProgress "Downloading journal template."
+
+doMoveJournaltoTemplate
+vProgress = 1
+doShowProgress "Moving data to saved journal template."
+
+MsgBox "The journal creation is successful!", vbOKOnly, "Information"
+
+End Function
+
+
+Public Function doGetJournalArr()
+
+Dim vJFields, vTemp() As Variant
+Dim vCol, vRow As Long
+Dim vPoint As Variant
+
+'Set vWS_J = ActiveWorkbook.Sheets("Summary") 'Remove this line when the file goes live
+
+On Error GoTo Handler01
+
+vJFields = doSetJournalFields("journal")
+vCol = UBound(vJFields) + 1
+vPoint = doFindCell(vJFields(1), vWS_J.Range(Cells(1, 1), Cells(1, vCol)))
+vRow = doFindLastRow(vWS_J, vPoint(1))
+
+Set vRG_JOURNAL = vWS_J.Range(Cells(1, 1), Cells(vRow, vCol))
+vRG_JOURNAL.Name = "Journal" & vWS_J.Name
+doFormatPayrollTable
+
+ReDim vTemp(vRG_JOURNAL.Rows.Count - 1, vRG_JOURNAL.Columns.Count - 1)
+
+For i = 0 To vRow - 1
+    
+    vProgress = vProgress + Round(0.14 / (vRow - 1), 2)
+    doShowProgress "Building array of journal data."
+    
+    For j = 0 To vCol - 1
+        vTemp(i, j) = vRG_JOURNAL.Cells(i + 1, j + 1).Value
+    Next j
+Next i
+
+vAR_JOURNAL = vTemp
+
+Exit Function
+
+Handler01:
+Unload vNotification
+MsgBox "Error in getting journal array.", vbOKOnly, "Error"
+End
+
+End Function
+
+
+Public Function doMoveJournaltoTemplate()
+
+Dim vXL As Excel.Application
+Dim vWB1 As Workbook
+Dim vColNo As Long
+Dim vRng As ListObject
+Dim vFN As String
+
+On Error GoTo Handler01:
+
+Set vXL = New Excel.Application
+vXL.Visible = True
+vXL.Application.ScreenUpdating = False
+
+'vTemplateFileName '= "C:\Users\RubenTedjasukmana\OneDrive\RCRC\Payroll Journal Automation\Journal Template.xlsx"
+Set vWB1 = vXL.Workbooks.Open(vTemplateFileName)
+Set vRng = vWB1.Sheets("LoadToCoda").ListObjects("TableTransactions")
+
+For j = 1 To UBound(vAR_JOURNAL, 1)
+ 
+    vProgress = vProgress + Round(0.14 / UBound(vAR_JOURNAL, 1), 2)
+    doShowProgress "Moving data to saved journal template."
+         
+    If vRng.ListRows.Count < j Then
+        vRng.ListRows.Add
+    End If
+    
+    For i = 0 To UBound(vAR_JOURNAL, 2)
+        vFN = vAR_JOURNAL(0, i)
+        vRng.ListColumns(vFN).Range(j + 1, 1).Value = vAR_JOURNAL(j, i)
+    Next i
+    
+    vRng.ListColumns("date").Range(j + 1, 1).Value = DateSerial(Year(Now()), Month(Now()), Day(Now()))
+    vRng.ListColumns("year").Range(j + 1, 1).Value = Year(Now())
+    vRng.ListColumns("period").Range(j + 1, 1).Value = Month(Now())
+    vRng.ListColumns("document description").Range(j + 1, 1).Value = "PAYROLL"
+    vRng.ListColumns("cc").Range(j + 1, 1).Value = "ID"
+    vRng.ListColumns("doc").Range(j + 1, 1).Value = "PRLL"
+    vRng.ListColumns("docnum").Range(j + 1, 1).Value = vRng.ListColumns("line").Range(j + 1, 1).Value
+Next j
+
+'doMoveJournaltoTemplate = vWB1.Name
+'Application.DisplayAlerts = False
+vXL.Application.ScreenUpdating = True
+vWB1.Save
+'vXL.Visible = True
+'Application.DisplayAlerts = True
+'vWB1.Close SaveChanges:=True
+'vXL.Quit
+Set vWB1 = Nothing
+Set vXL = Nothing
+
+Exit Function
+
+Handler01:
+
+Application.ScreenUpdating = True
+
+If Not vXL Is Nothing Then
+    Set vXL = Nothing
+End If
+
+If Not vWB1 Is Nothing Then
+    vWB1.Save
+    vWB1.Close
+    Set vWB1 = Nothing
+End If
+
+End Function
+
+
+Public Function doFormatPayrollTable()
+
+Dim vCol(1) As Long, vRow As Long
+
+vCol(0) = doFindHeaderInRng("debit", vRG_JOURNAL)
+vCol(1) = doFindHeaderInRng("credit", vRG_JOURNAL)
+vRow = vRG_JOURNAL.Rows.Count
+
+For i = 0 To UBound(vCol)
+    vRG_JOURNAL.Range(Cells(1, vCol(i)), Cells(vRow, vCol(i))).NumberFormat = "#,##0.00"
+Next i
+
+vRG_JOURNAL.Columns.AutoFit
+
+End Function
