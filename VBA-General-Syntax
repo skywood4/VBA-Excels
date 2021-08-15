@@ -28,88 +28,88 @@ End Function
 
 Public Function doFindLastRow(ByVal vWS1 As Worksheet, ByVal vStart As String) As Long
 
-Dim vTemp As Long, vRow As Long
+    Dim vTemp As Long, vRow As Long
 
-vTemp = vWS1.Range(vStart).End(xlDown).Row
-a = vWS1.Range(vStart).Row
-vRow = 1
+    vTemp = vWS1.Range(vStart).End(xlDown).Row
+    a = vWS1.Range(vStart).Row
+    vRow = 1
 
-Do While vTemp < 1048576
-    vRow = vTemp
-    vTemp = vWS1.Range(vStart).Offset(vRow - a, 0).End(xlDown).Row
-    
-Loop
+    Do While vTemp < 1048576
+        vRow = vTemp
+        vTemp = vWS1.Range(vStart).Offset(vRow - a, 0).End(xlDown).Row
+        
+    Loop
 
-doFindLastRow = vRow
+    doFindLastRow = vRow
 
 End Function
 
 
 Public Function doFindCell(ByVal vWhatToFind As String, ByVal vRng As Range) As Variant
 
-Dim vRow, vCol As Long
-Dim vTemp() As Variant
+    Dim vRow, vCol As Long
+    Dim vTemp() As Variant
 
-vRow = vRng.Rows.Count
-vCol = vRng.Columns.Count
-ReDim vTemp(0)
-vTemp(0) = "Empty"
+    vRow = vRng.Rows.Count
+    vCol = vRng.Columns.Count
+    ReDim vTemp(0)
+    vTemp(0) = "Empty"
 
-i = 0
-For iRow = 1 To vRow
-    For iCol = 1 To vCol
-        If vRng.Cells(iRow, iCol).Value = vWhatToFind Then
-            i = i + 1
-            ReDim Preserve vTemp(i)
-            vTemp(i) = vRng.Cells(iRow, iCol).Address
-        End If
-    Next iCol
-Next iRow
+    i = 0
+    For iRow = 1 To vRow
+        For iCol = 1 To vCol
+            If vRng.Cells(iRow, iCol).Value = vWhatToFind Then
+                i = i + 1
+                ReDim Preserve vTemp(i)
+                vTemp(i) = vRng.Cells(iRow, iCol).Address
+            End If
+        Next iCol
+    Next iRow
 
-doFindCell = vTemp
+    doFindCell = vTemp
 
 End Function
 
 Public Function doFindHeaderInRng(ByVal vWhatToFind As String, ByVal vRng As Range) As Long
 
-Dim vCol As Long
-Dim vTemp As Long
-Dim vFound As Boolean
+    Dim vCol As Long
+    Dim vTemp As Long
+    Dim vFound As Boolean
 
-vTemp = 0
-vCol = vRng.Columns.Count
+    vTemp = 0
+    vCol = vRng.Columns.Count
 
-i = 0
+    i = 0
 
-vFound = False
-For iCol = 1 To vCol
-    If vRng.Cells(1, iCol).Value = vWhatToFind And vFound = False Then
-        vTemp = iCol
-        vFound = True
-    End If
-Next iCol
+    vFound = False
+    For iCol = 1 To vCol
+        If vRng.Cells(1, iCol).Value = vWhatToFind And vFound = False Then
+            vTemp = iCol
+            vFound = True
+        End If
+    Next iCol
 
-doFindHeaderInRng = vTemp
+    doFindHeaderInRng = vTemp
 
 End Function
 
 Public Function doCountIF2DArr(ByVal vWhatToFind As String, ByVal vArr As Variant) As Long
 
-Dim vRow, vCol, vCount As Long
-vRow = UBound(vArr, 1)
-vCol = UBound(vArr, 2)
+    Dim vRow, vCol, vCount As Long
+    vRow = UBound(vArr, 1)
+    vCol = UBound(vArr, 2)
 
 
-vCount = 0
-For i = 0 To vRow
-    For j = 0 To vCol
-        If vArr(i, j) = vWhatToFind Then
-            vCount = vCount + 1
-        End If
-    Next j
-Next i
+    vCount = 0
+    For i = 0 To vRow
+        For j = 0 To vCol
+            If vArr(i, j) = vWhatToFind Then
+                vCount = vCount + 1
+            End If
+        Next j
+    Next i
 
-doCountIF2DArr = vCount
+    doCountIF2DArr = vCount
 
 End Function
 
@@ -117,176 +117,164 @@ End Function
 
 Public Function doCopyFiles(ByVal vFileLoc As String, ByVal vDestination As String)
 
-Dim vURL As String
-Dim vFile As FileSystemObject 'This is for checking local folder location and do the manipulation
-Dim vHTTP As XMLHTTP60 'This is to obtain updated xlam file for update
-Dim vStream As ADODB.Stream
-Dim vTemp As Workbook
+    Dim vURL As String
+    Dim vFile As FileSystemObject 'This is for checking local folder location and do the manipulation
+    Dim vHTTP As XMLHTTP60 'This is to obtain updated xlam file for update
+    Dim vStream As ADODB.Stream
+    Dim vTemp As Workbook
 
-vURL = vFileLoc
-Set vHTTP = New XMLHTTP60
-Set vStream = New ADODB.Stream
+    vURL = vFileLoc
+    Set vHTTP = New XMLHTTP60
+    Set vStream = New ADODB.Stream
 
-vHTTP.Open "GET", vFileLoc, False
-vHTTP.send
+    vHTTP.Open "GET", vFileLoc, False
+    vHTTP.send
 
-Do While vHTTP.readyState <> 4
-    DoEvents
-Loop
+    Do While vHTTP.readyState <> 4
+        DoEvents
+    Loop
 
-vresp = vHTTP.responseBody
+    vresp = vHTTP.responseBody
 
-vff = FreeFile
-If Dir(vDestination) <> "" Then
-    Kill vDestination
-End If
+    vff = FreeFile
+    If Dir(vDestination) <> "" Then
+        Kill vDestination
+    End If
 
-Open vDestination For Binary As #vff
-Put #vff, , vresp
-Close #vff
-
-
-
-'vStream.Open
-'vStream.Type = 1
-'vStream.Write vHTTP.responseBody
-
-'vStream.SaveToFile vDestination, 2
-'vStream.Close
-
-'Workbooks.Open (vDestination)
-'Set doCopyFiles = ActiveWorkbook
-
-End Function
+    Open vDestination For Binary As #vff
+    Put #vff, , vresp
+    Close #vff
 
 
 
-Public Function getTemplateAndSaveAs() As String
+    'vStream.Open
+    'vStream.Type = 1
+    'vStream.Write vHTTP.responseBody
 
-Dim vDefault As String, vDestination As String
+    'vStream.SaveToFile vDestination, 2
+    'vStream.Close
 
-vDefault = "C:\Users\" & Environ("username") & "\Documents\"
-
-With Application.FileDialog(msoFileDialogSaveAs)
-
+    'Workbooks.Open (vDestination)
+    'Set doCopyFiles = ActiveWorkbook
 
 End Function
+
 
 
 Function doDownloadFileFromWeb(ByVal strURL As String, ByVal strSavePath As String)
 
-' strSavePath includes filename
-On Error GoTo Handler01
+    ' strSavePath includes filename
+    On Error GoTo Handler01
 
-Dim vFile As FileSystemObject
+    Dim vFile As FileSystemObject
 
-Set vFile = New FileSystemObject
+    Set vFile = New FileSystemObject
 
-URLDownloadToFile 0, strURL, strSavePath, 0, 0
-Do While vFile.FileExists(strSavePath) = False
-    DoEvents
-Loop
+    URLDownloadToFile 0, strURL, strSavePath, 0, 0
+    Do While vFile.FileExists(strSavePath) = False
+        DoEvents
+    Loop
 
-Exit Function
-    
-Handler01:
-MsgBox "Failed to access the server to obtain needed file!", vbOKOnly, "Error"
-End
+    Exit Function
+        
+    Handler01:
+    MsgBox "Failed to access the server to obtain needed file!", vbOKOnly, "Error"
+    End
     
 End Function
 
 
 Function doDownloadExcelFile(ByVal strURL As String, ByVal strSavePath As String)
 
-' strSavePath includes filename
-On Error GoTo Handler01
+    ' strSavePath includes filename
+    On Error GoTo Handler01
 
-Dim vFile As FileSystemObject
-Dim vXL As Excel.Application
-Dim vWB1 As Workbook
+    Dim vFile As FileSystemObject
+    Dim vXL As Excel.Application
+    Dim vWB1 As Workbook
 
-Set vFile = New FileSystemObject
-Set vXL = New Excel.Application
+    Set vFile = New FileSystemObject
+    Set vXL = New Excel.Application
 
-vXL.Visible = False
-vXL.DisplayAlerts = False
+    vXL.Visible = False
+    vXL.DisplayAlerts = False
 
-Set vWB1 = vXL.Workbooks.Open(strURL)
-vWB1.SaveAs strSavePath
+    Set vWB1 = vXL.Workbooks.Open(strURL)
+    vWB1.SaveAs strSavePath
 
-Do While vFile.FileExists(strSavePath) = False
-    DoEvents
-Loop
+    Do While vFile.FileExists(strSavePath) = False
+        DoEvents
+    Loop
 
-vWB1.Close SaveChanges:=True
-vXL.Visible = True
-vXL.DisplayAlerts = True
-Set vXL = Nothing
+    vWB1.Close SaveChanges:=True
+    vXL.Visible = True
+    vXL.DisplayAlerts = True
+    Set vXL = Nothing
 
-Exit Function
-    
-Handler01:
-MsgBox "Failed to access the server to obtain needed file!", vbOKOnly, "Error"
-End
-    
+    Exit Function
+        
+    Handler01:
+    MsgBox "Failed to access the server to obtain needed file!", vbOKOnly, "Error"
+    End
+        
 End Function
 
 
 Public Function doDownloadTemplate()
 
-Dim vLoc, vFName, vSource, vRename As String
-Dim vFile As FileSystemObject
-Dim vDialog As FileDialog
+    Dim vLoc, vFName, vSource, vRename As String
+    Dim vFile As FileSystemObject
+    Dim vDialog As FileDialog
 
-Application.DisplayAlerts = False
+    Application.DisplayAlerts = False
 
-Set vFile = New FileSystemObject
-vLoc = "C:\Users\" & Environ("username") & "\Documents\xJournal_Templates\"
-If vFile.FolderExists(vLoc) = False Then
-    MkDir vLoc
-End If
-
-vFName = "Journal Template.xlsx" '<<<< change this filename for real live version
-
-vSource = "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/IFRC/" & vFName
-
-If vFile.FileExists(vLoc & vFName) = True Then
-    Kill vLoc & vFName
-    doDownloadExcelFile vSource, vLoc & vFName
-    'Do While vFile.FileExists(vLoc & vFName) = True
-    '    DoEvents
-    'Loop
-Else:
-    doDownloadExcelFile vSource, vLoc & vFName
-    'Do While vFile.FileExists(vLoc & vFName) = True
-    '    DoEvents
-    'Loop
-End If
-
-
-
-Set vDialog = Application.FileDialog(msoFileDialogSaveAs)
-With vDialog
-    .ButtonName = "Save"
-    .AllowMultiSelect = False
-    .InitialFileName = "C:\Users\" & Environ("username") & "\Documents\" & "xPayroll Journal " & Format(Now(), ("MMYY"))
-    
-    If .Show <> 0 Then
-        vRename = .SelectedItems(1)
-        FileCopy vLoc & vFName, vRename
-    Else:
-        MsgBox "Saving file operation is cancelled by user.", vbOKOnly, "Information"
-        End
+    Set vFile = New FileSystemObject
+    vLoc = "C:\Users\" & Environ("username") & "\Documents\xJournal_Templates\"
+    If vFile.FolderExists(vLoc) = False Then
+        MkDir vLoc
     End If
-End With
 
-Application.DisplayAlerts = True
+    vFName = "Journal Template.xlsx" '<<<< change this filename for real live version
 
-vTemplateFileName = vRename
-End Function
+    vSource = "https://rtedja-my.sharepoint.com/personal/rtedjasukmana_rtedja_onmicrosoft_com/Documents/Shared Resources/IFRC/" & vFName
 
-Function doShowVersion()
+    If vFile.FileExists(vLoc & vFName) = True Then
+        Kill vLoc & vFName
+        doDownloadExcelFile vSource, vLoc & vFName
+        'Do While vFile.FileExists(vLoc & vFName) = True
+        '    DoEvents
+        'Loop
+    Else:
+        doDownloadExcelFile vSource, vLoc & vFName
+        'Do While vFile.FileExists(vLoc & vFName) = True
+        '    DoEvents
+        'Loop
+    End If
 
-MsgBox "The current version of the add-ins app is " & vVersion & ".", vbOKOnly, "Information"
+
+
+    Set vDialog = Application.FileDialog(msoFileDialogSaveAs)
+    With vDialog
+        .ButtonName = "Save"
+        .AllowMultiSelect = False
+        .InitialFileName = "C:\Users\" & Environ("username") & "\Documents\" & "xPayroll Journal " & Format(Now(), ("MMYY"))
+        
+        If .Show <> 0 Then
+            vRename = .SelectedItems(1)
+            FileCopy vLoc & vFName, vRename
+        Else:
+            MsgBox "Saving file operation is cancelled by user.", vbOKOnly, "Information"
+            End
+        End If
+    End With
+
+    Application.DisplayAlerts = True
+
+    vTemplateFileName = vRename
+    End Function
+
+    Function doShowVersion()
+
+    MsgBox "The current version of the add-ins app is " & vVersion & ".", vbOKOnly, "Information"
 
 End Function
